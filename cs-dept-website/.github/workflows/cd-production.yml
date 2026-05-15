@@ -1,0 +1,103 @@
+# ──────────────────────────────────────────────────────────────
+# CD Pipeline — PRODUCTION Environment
+# Triggers: push to `main` branch
+# Deploys to: Render.com production service
+# Requires: manual approval via GitHub Environment protection rule
+# ──────────────────────────────────────────────────────────────
+
+name: CD — Deploy to Production
+
+on:
+  push:
+    branches: [main]
+
+# Use GitHub Environment: production (holds secrets + requires approval)
+environment: production
+
+jobs:
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Docker image (production tags)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/cs-dept-website:latest
+            ${{ secrets.DOCKER_USERNAME }}/cs-dept-website:prod-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run full smoke test on production image
+        run: |
+          docker pull ${{ secrets.DOCKER_USERNAME }}/cs-dept-website:latest
+          docker run -d --name prod-test -p 8080:80 \
+            ${{ secrets.DOCKER_USERNAME }}/cs-dept-website:latest
+          sleep 5
+
+          # Test all pages
+          declare -a PAGES=("/" "/courses.html" "/faculty.html" "/admissions.html" "/contact.html")
+          for PAGE in "${PAGES[@]}"; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8080${PAGE}")
+            if [ "$STATUS" -eq 200 ]; then
+              echo "✅ $PAGE — HTTP $STATUS"
+            else
+              echo "❌ $PAGE — HTTP $STATUS FAILED"
+              docker stop prod-test && docker rm prod-test
+              exit 1
+            fi
+          done
+
+          docker stop prod-test && docker rm prod-test
+          echo "✅ All page smoke tests passed!"
+
+      - name: Trigger Render.com deployment (Production)
+        run: |
+          curl -s -X POST "${{ secrets.RENDER_DEPLOY_HOOK_PROD }}" \
+            -H "Content-Type: application/json" \
+            --fail \
+            && echo "✅ Render deployment triggered for PRODUCTION"
+
+      - name: Wait and verify production site
+        run: |
+          echo "Waiting 45s for production deployment to initialize..."
+          sleep 45
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.PROD_SITE_URL }}")
+          echo "HTTP status: $STATUS"
+          if [ "$STATUS" -eq 200 ]; then
+            echo "✅ Production site is LIVE: ${{ secrets.PROD_SITE_URL }}"
+          else
+            echo "⚠️  Site returned status $STATUS — may still be deploying."
+          fi
+
+      - name: Tag release in Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "release-$(date +%Y%m%d-%H%M%S)" -m "Production release ${{ github.sha }}"
+          git push origin --tags || true
+
+      - name: Deployment summary
+        run: |
+          echo "┌─────────────────────────────────────────────┐"
+          echo "│  PRODUCTION Deployment Complete              │"
+          echo "│  Branch:  main                               │"
+          echo "│  Commit:  ${{ github.sha }}                  │"
+          echo "│  URL:     ${{ secrets.PROD_SITE_URL }}       │"
+          echo "└─────────────────────────────────────────────┘"

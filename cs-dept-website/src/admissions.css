@@ -1,0 +1,170 @@
+/* =============================================
+   ADMISSIONS PAGE STYLES
+   ============================================= */
+
+.admissions-section { padding: 4rem 0 6rem; }
+
+/* Programs */
+.programs-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 4rem;
+}
+
+.program-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  transition: border-color 0.2s, transform 0.2s;
+  position: relative;
+}
+.program-card:hover { border-color: rgba(255,255,255,0.12); transform: translateY(-3px); }
+
+.program-card--featured {
+  background: linear-gradient(145deg, rgba(30,64,175,0.18), rgba(10,15,46,0.5));
+  border-color: rgba(30,64,175,0.4);
+}
+
+.program-badge {
+  position: absolute; top: -0.6rem; left: 1.5rem;
+  background: var(--accent);
+  color: var(--navy);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 0.2rem 0.7rem;
+  border-radius: 4px;
+}
+
+.program-card h3 {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  color: #fff;
+}
+
+.program-duration {
+  font-size: 0.8rem;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.program-card p { font-size: 0.875rem; color: #94a3b8; line-height: 1.7; }
+
+.program-features {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0.5rem 0;
+}
+.program-features li {
+  font-size: 0.82rem;
+  color: #64748b;
+  padding-left: 1rem;
+  position: relative;
+}
+.program-features li::before {
+  content: '✓';
+  position: absolute; left: 0;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* Info Blocks */
+.admissions-info { display: flex; flex-direction: column; gap: 3.5rem; }
+
+.info-block h2 {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  color: #fff;
+  margin-bottom: 1.75rem;
+}
+
+/* Criteria */
+.criteria-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+}
+
+.criteria-item {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1.5rem;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.criteria-icon { font-size: 1.5rem; flex-shrink: 0; }
+.criteria-item h4 { color: #fff; font-size: 0.95rem; margin-bottom: 0.3rem; }
+.criteria-item p { color: #64748b; font-size: 0.83rem; line-height: 1.65; }
+
+/* Steps */
+.steps { display: flex; flex-direction: column; gap: 0; }
+
+.step {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+  padding: 1.25rem 1.5rem;
+  border-left: 2px solid var(--border);
+  margin-left: 1.5rem;
+  position: relative;
+}
+.step::before {
+  content: '';
+  position: absolute; left: -5px; top: 1.5rem;
+  width: 8px; height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+.step:hover::before { background: var(--gold); }
+
+.step-num {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: rgba(245,158,11,0.3);
+  min-width: 2.5rem;
+  line-height: 1;
+}
+.step h4 { color: #fff; font-size: 0.95rem; margin-bottom: 0.25rem; }
+.step p { color: #64748b; font-size: 0.83rem; line-height: 1.65; }
+
+/* Deadlines Table */
+.deadlines-block h2 {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  color: #fff;
+  margin-bottom: 1.75rem;
+}
+
+.deadlines-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.deadlines-table th {
+  text-align: left;
+  padding: 0.85rem 1.25rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #64748b;
+  border-bottom: 1px solid var(--border);
+}
+.deadlines-table td {
+  padding: 0.85rem 1.25rem;
+  color: #94a3b8;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.deadlines-table tr:first-child td { color: #fff; }
+.deadlines-table tr:hover td { background: rgba(255,255,255,0.02); }

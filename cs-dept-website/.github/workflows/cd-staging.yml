@@ -1,0 +1,87 @@
+# ──────────────────────────────────────────────────────────────
+# CD Pipeline — STAGING / QA Environment
+# Triggers: push to `release` branch
+# Deploys to: Render.com staging service
+# ──────────────────────────────────────────────────────────────
+
+name: CD — Deploy to Staging
+
+on:
+  push:
+    branches: [release]
+
+# Use GitHub Environment: staging (holds secrets)
+environment: staging
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging / QA
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Docker image (staging tag)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/cs-dept-website:staging
+            ${{ secrets.DOCKER_USERNAME }}/cs-dept-website:staging-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run smoke test on Docker image
+        run: |
+          docker pull ${{ secrets.DOCKER_USERNAME }}/cs-dept-website:staging
+          docker run -d --name test-container -p 8080:80 \
+            ${{ secrets.DOCKER_USERNAME }}/cs-dept-website:staging
+          sleep 5
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080)
+          docker stop test-container && docker rm test-container
+          if [ "$STATUS" -eq 200 ]; then
+            echo "✅ Smoke test passed (HTTP $STATUS)"
+          else
+            echo "❌ Smoke test FAILED (HTTP $STATUS)"
+            exit 1
+          fi
+
+      - name: Trigger Render.com deployment (Staging)
+        run: |
+          curl -s -X POST "${{ secrets.RENDER_DEPLOY_HOOK_STAGING }}" \
+            -H "Content-Type: application/json" \
+            --fail \
+            && echo "✅ Render deployment triggered for STAGING"
+
+      - name: Wait and verify staging site
+        run: |
+          echo "Waiting 30s for deployment to initialize..."
+          sleep 30
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.STAGING_SITE_URL }}")
+          echo "HTTP status: $STATUS"
+          if [ "$STATUS" -eq 200 ]; then
+            echo "✅ Staging site is live: ${{ secrets.STAGING_SITE_URL }}"
+          else
+            echo "⚠️  Site returned status $STATUS — may still be deploying."
+          fi
+
+      - name: Deployment summary
+        run: |
+          echo "┌─────────────────────────────────────────────┐"
+          echo "│  STAGING Deployment Complete                 │"
+          echo "│  Branch:  release                            │"
+          echo "│  Commit:  ${{ github.sha }}                  │"
+          echo "│  URL:     ${{ secrets.STAGING_SITE_URL }}    │"
+          echo "└─────────────────────────────────────────────┘"
